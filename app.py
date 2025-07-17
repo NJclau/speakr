@@ -1,7 +1,7 @@
 # Speakr - Audio Transcription and Summarization App
 import os
 import sys
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, Response, send_from_directory
 try:
     from flask import Markup
 except ImportError:
@@ -115,8 +115,8 @@ def format_transcription_for_llm(transcription_text):
 
 app = Flask(__name__)
 # Use environment variables or default paths for Docker compatibility
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:////data/instance/transcriptions.db')
-app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', '/data/uploads')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:////app/instance/transcriptions.db')
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 250 * 1024 * 1024  # 250MB max file size
 # Set a secret key for session management and CSRF protection
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-dev-key-change-in-production')
@@ -161,10 +161,10 @@ def local_datetime_filter(dt):
     return format_datetime(local_dt, format='medium', locale='en_US')
 
 # Ensure upload and instance directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Ensure upload and instance directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Assuming the instance folder is handled correctly by Flask or created by setup.sh
 # os.makedirs(os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '/')), exist_ok=True)
 
@@ -1957,10 +1957,13 @@ def admin_get_stats():
     })
 
 # --- Flask Routes ---
-@app.route('/')
-def index():
-    # Pass the ASR config to the template
-    return render_template('index.html', use_asr_endpoint=USE_ASR_ENDPOINT)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join('frontend', 'build', path)):
+        return send_from_directory(os.path.join('frontend', 'build'), path)
+    else:
+        return send_from_directory(os.path.join('frontend', 'build'), 'index.html')
 
 @app.route('/recordings', methods=['GET'])
 def get_recordings():
