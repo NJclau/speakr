@@ -34,3 +34,22 @@ services:
     # volumes:
     #   - speakr-uploads:/data/uploads
     #   - speakr-instance:/data/instance
+  redis:
+    image: "redis:alpine"
+    container_name: speakr-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+  worker:
+    image: learnedmachine/speakr:latest
+    container_name: speakr-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "celery_worker.celery", "worker", "--loglevel=info"]
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/data/uploads
+      - ./instance:/data/instance
+    depends_on:
+      - app
+      - redis
